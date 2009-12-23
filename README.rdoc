@@ -1,0 +1,29 @@
+= ChromeMigemo Extension
+
+Migemo is an ambiguous search query generator. 
+This extension is a Migemo server for Chrome, 
+which itself does not provide any end-user interface, 
+but intended to be used by other extensions.
+
+== Dependency
+- jsdeferred.js <http://github.com/cho45/jsdeferred>
+- jsdeferred-webdatabase <http://github.com/hotchpotch/jsdeferred-webdatabase>
+- jsdeferred-migemo <http://github.com/edvakf/JSDeferred-Migemo>
+
+== Author
+
+Atsushi TAKAYAMA (@edvakf on twitter)
+
+== Lisence
+
+The MIT Lisence
+
+== Special Thanks
+
+I'd like to thank;
+
+The SKK project for the dictionary.
+<http://openlab.jp/skk/wiki/wiki.cgi?page=SKK%BC%AD%BD%F1#p6>
+
+blogperfume.com for the cute free icons.
+<http://www.blogperfume.com/free-glossy-blogging-icons-set-for-bloggers/>

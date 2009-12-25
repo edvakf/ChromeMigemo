@@ -1,11 +1,12 @@
 {
   "name": "ChromeMigemo",
   "icons": { 
+    "24": "icon24.png",
+    "32": "icon32.png",
     "48": "icon48.png"
   },
   "id": "99fa5f66a2004414a24fbc51b8a87e97",
-  "description": "Migemo is an ambiguous search query generator. This extension is a Migemo server for Chrome, which itself does not provide any end-user interface, but intended to be used by other extensions.",
+  "description": "A Migemo server. It does not provide any end-user interface. It provides APIs to be used by other extensions.",
   "version": "0.3.0",
-  "update_url": "http://localhost/example/update.xml",
   "background_page": "background/background.html"
 }

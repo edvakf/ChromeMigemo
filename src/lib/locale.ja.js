@@ -5,8 +5,8 @@
 
   var getRegExpStringFromWords = Deferred.Migemo.getRegExpStringFromWords;
 
-  Deferred.Migemo.createConfigJa = function(romanToHiraganaTable, dictionaryPath) {
-    if (!dictionaryPath) dictionaryPath = 'dict/migemo-dict-ja';
+  Deferred.Migemo.createConfigJa = function(romanToHiraganaTable, dictionaryPaths) {
+    if (!dictionaryPaths) dictionaryPaths = ['dict/migemo-dict-ja', 'dict/migemo-dict-ja-roman'];
     if (!romanToHiraganaTable) romanToHiraganaTable = ROMAN_TO_HIRAGANA_TABLE;
     romanToHiraganaTable['xtu'] = 'っ'; // not configurable
 
@@ -29,42 +29,45 @@
     var re_all = new RegExp('('+getRegExpStringFromWords(all, true)+')', 'g');
 
     // returns 2D array (each segment of query & each candidate)
-    function expandQuery(queries) {
-      return queries.split(/\s+/).map(function(query) {
-        var hiragana = '';
-        var normalized = normalizeDoubleConsonants(query);
-        var segments = normalized.split(re_all).filter(function(s) {return s!=''});
-        var s;
-        while (s = segments.shift()) {
-          if (romanToHiraganaTable[s]) hiragana += romanToHiraganaTable[s];
-          else break;
-        }
-        // if query was successfully turned into hiragana
-        if (!s) return [query, hiragana];
-        // if there is a remainder
-        var remain = s + segments.join('');
-        if (!tails[remain]) return [query];
-        var hiraganas = tails[remain].map(function(tail) { return hiragana + romanToHiraganaTable[remain+tail]; });
-        // add tailing 'っ'
-        if (remain.length == 1 && hiragana.slice(-1) !== 'っ') {
-          hiraganas = hiraganas.concat(tails[remain].map(function(tail) { return hiragana + 'っ' + romanToHiraganaTable[remain+tail]; }))
-        }
-        // removes redundancy ["ち","ちゃ","ちょ","ちゅ"] -> ["ち"]
-        hiraganas.sort(function(a,b) {return a.length - b.length});
-        for (var i=0; i<hiraganas.length; i++) {
-          for (var j=i+1; j<hiraganas.length;) {
-            if (hiraganas[j].indexOf(hiraganas[i]) === 0) hiraganas.splice(j, 1);
-            else j++;
+    function expandQuery(queries) { // queries : 'TaBeruna kiken'
+      return queries
+        .replace(/^[\A-Z]/,function(s) {return s.toLowerCase();}) // 'taBeruna kiken'
+        .replace(/[\A-Z]/,function(s) {return ' '+s.toLowerCase();}) // 'ta beruna kiken'
+        .split(/\s+/).map(function(query) { // ['ta', 'beruna', 'kiken']
+          var hiragana = '';
+          var normalized = normalizeDoubleConsonants(query);
+          var segments = normalized.split(re_all).filter(function(s) {return s!=''});
+          var s;
+          while (s = segments.shift()) {
+            if (romanToHiraganaTable[s]) hiragana += romanToHiraganaTable[s];
+            else break;
           }
-        }
-        return [query].concat(hiraganas);
-      });
+          // if query was successfully turned into hiragana
+          if (!s) return [query, hiragana];
+          // if there is a remainder
+          var remain = s + segments.join('');
+          if (!tails[remain]) return [query];
+          var hiraganas = tails[remain].map(function(tail) { return hiragana + romanToHiraganaTable[remain+tail]; });
+          // add tailing 'っ'
+          if (remain.length == 1 && hiragana.slice(-1) !== 'っ') {
+            hiraganas = hiraganas.concat(tails[remain].map(function(tail) { return hiragana + 'っ' + romanToHiraganaTable[remain+tail]; }))
+          }
+          // removes redundancy ["ち","ちゃ","ちょ","ちゅ"] -> ["ち"]
+          hiraganas.sort(function(a,b) {return a.length - b.length});
+          for (var i=0; i<hiraganas.length; i++) {
+            for (var j=i+1; j<hiraganas.length;) {
+              if (hiraganas[j].indexOf(hiraganas[i]) === 0) hiraganas.splice(j, 1);
+              else j++;
+            }
+          }
+          return [query].concat(hiraganas);
+        });
     }
 
     var config = {
       locale : 'ja',
-      version : '0.3.0', // version is to be used when auto-upgrading dictionary database
-      dictionaryPath : dictionaryPath,
+      version : '0.4.0', // version is to be used when auto-upgrading dictionary database
+      dictionaryPaths : dictionaryPaths,
       expandQuery : expandQuery,
       expandResult : expandResult
     };
@@ -119,12 +122,10 @@
     "V":"Ｖ","W":"Ｗ","X":"Ｘ","Y":"Ｙ","Z":"Ｚ",
     "1":"１","2":"２","3":"３","4":"４","5":"５","6":"６","7":"７",
     "8":"８","9":"９","0":"０",
-    /*
     "~":"〜","!":"！","@":"＠","#":"＃","$":"＄","%":"％","^":"＾",
     "&":"＆","*":"＊","(":"（",")":"）","_":"＿","+":"＋","{":"｝",
     "}":"｝","[":"［","]":"］","|":"｜","\\":"＼",":":"：",";":"；",
     "\"":"＼","<":"＜",",":"，",">":"＞",".":"．","?":"？","/":"／"
-    */
   };
 
   var hiraganaToKatakanaTable = {

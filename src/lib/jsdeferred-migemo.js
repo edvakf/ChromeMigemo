@@ -14,7 +14,7 @@
 
 // Example usage:
 //   var Migemo = Deferred.Migemo;
-//   var config = Migemo.createOptionsJa();
+//   var config = Migemo.createConfigJa();
 //   Migemo.initialize(config)
 //   .next(function() {
 //     return Migemo.getRegExpString('shinkansen');
@@ -48,7 +48,7 @@
   /*
    * define Deferred.Migemo.*
    */
-  Deferred.Migemo = {
+  var Migemo = Deferred.Migemo = {
     initialize : initialize,
     getCompletion : getCompletion,
     getRegExpString : getRegExpString,
@@ -60,7 +60,7 @@
     if (!config) config = {};
     var version = config.version || 'NONE';
     var locale = config.locale || localStorage['MIGEMO_LOCALE'] || 'NONE';
-    var dictionaryPath = config.dictionaryPath || 'dict/migemo-dict';
+    var dictionaryPaths = config.dictionaryPaths || ['dict/migemo-dict'];
     if (config.expandQuery) expandQuery = config.expandQuery;
     if (config.expandResult) expandResult = config.expandResult;
 
@@ -68,7 +68,7 @@
     if ( localStorage['MIGEMO_LOCALE'] === locale && localStorage['MIGEMO_DICT_VERSION'] === version) {
       return Deferred.wait(0);
     } else {
-      return openDictionaryFile( dictionaryPath )
+      return openDictionaryFiles( dictionaryPaths )
         .next(function(text) {
           return createDatabase(text);
         }).next(function() {
@@ -105,7 +105,7 @@
       .next(function() {
         var lines = text.split(/\s*\n/);
         var i=0, line;
-        var t = new Date;
+        var t = Date.now();
         return Deferred.loop(Math.ceil(lines.length/1000), function() {
           return Dictionary._db.transaction(function() {
             while (line = lines[i++]) {
@@ -118,7 +118,7 @@
                 new Dictionary({word: sqlLikeEscape(word), first: first, completion: completion}).save();
               });
               if (i % 1000 == 0) {
-                if (Deferred.Migemo.debug) console.log(i + ' items stored. Time : ' + Math.floor((new Date-t)/100)/10 + ' s');
+                if (Migemo.debug) console.log(i + ' items stored. Time : ' + Math.floor((Date.now()-t)/100)/10 + ' s');
                 break;
               }
             }
@@ -130,6 +130,16 @@
   };
 
   // load dictionary file
+  function openDictionaryFiles(paths) {
+    console.log(paths);
+    return Deferred.parallel(
+      paths.map(function(path) {return openDictionaryFile(path);})
+    )
+    .next(function(texts) {
+      return texts.join('\n');
+    })
+  };
+
   function openDictionaryFile(path) {
     var d = new Deferred;
     var xhr = new XMLHttpRequest;
@@ -144,21 +154,24 @@
   function findAmbiguous(word) {
     // if cache exists
     var cached = findAmbiguousCache[word];
-    if (cached) return Deferred.next(function() {return cached;});
+    if (cached) {
+      if (Migemo.debug) console.log('Ambiguous cache found for ' + word);
+      return Deferred.next(function() {return cached;});
+    }
     // else 
     var first = word.charAt(0);
+    var t = Date.now();
     return Dictionary
       .find({
         fields: ['completion'], 
         where: ['first = ? AND word LIKE ?', [first, sqlLikeEscape(word) + '%'] ]
       })
       .next(function(results) {
-        return results.map(function(result) {return result.completion;});
-      })
-      .next(function(res) { // caching mechanizm
-        findAmbiguousCache[word] = res;
+        results = results.map(function(result) {return result.completion;});
+        findAmbiguousCache[word] = results;
         setTimeout(function() { findAmbiguousCache[word] = null; },60*1000); // auto-delete cache after 1 min.
-        return res;
+        if (Migemo.debug) console.log('Ambiguous search for ' + word + ' took ' + (Date.now() - t) + ' ms, found ' + results.length + ' results.');
+        return results;
       });
   };
 
@@ -166,20 +179,23 @@
   function findExact(word) {
     // if cache exists
     var cached = findExactCache[word];
-    if (cached) return Deferred.next(function() {return cached;});
+    if (cached) {
+      if (Migemo.debug) console.log('Exact cache found for ' + word);
+      return Deferred.next(function() {return cached;});
+    }
     // else 
+    var t = Date.now();
     return Dictionary
       .find({
         fields: ['completion'], 
         where: ['word = ?', [sqlLikeEscape(word)] ]
       })
       .next(function(results) {
-        return results.map(function(result) {return result.completion;});
-      })
-      .next(function(res) { // caching mechanizm
-        findExactCache[word] = res;
+        results = results.map(function(result) {return result.completion;});
+        findExactCache[word] = results;
         setTimeout(function() { findExactCache[word] = null; },60*1000); // auto-delete cache after 1 min.
-        return res;
+        if (Migemo.debug) console.log('Ambiguous search for ' + word + ' took ' + (Date.now() - t) + ' ms, found ' + results.length + ' results.');
+        return results;
       });
   };
 
@@ -188,7 +204,7 @@
    *   (completion list for each segment)
    */
   function getCompletion(query) {
-    var t = new Date;
+    var t = Date.now();
     if (query == '') return Deferred.next(function() {return [];});
 
     // expanding query means something like
@@ -202,24 +218,24 @@
           // don't search database if word length is zero
           if (word.length === 0) return Deferred.next(function() {return [];})
           // if the query is the last word or the word is less only one letter
-          else if (group !== last || word.length === 1) return findExact(word);
+          else if (group !== last) return findExact(word);  // need exact find when word.length === 1 ?
           // else
           return findAmbiguous(word);
         })
 
         return Deferred.parallel( lookups )
         .next(function(res) {
-          if (Deferred.Migemo.debug) console.log(group+' : '+ (new Date - t) +' ms.');
+          if (Migemo.debug) console.log(group+' : '+ (Date.now() - t) +' ms.');
           return res;
         })
           // group : ["atta","あった"] => results : [ ['attack', 'attach'], ['あった'] ]
         .next(function(results) { 
-          results = concat(results).concat(group);
+          results = concat(results.map(uniqueBeginning)).concat(group);
           results = results.map(expandResult);
           // what expandResult does is: 'attack' => ['attack', 'attacked', 'attacking', 'attacker'] 
           // or 'あった' => ['あった', 'アッタ']
           results = concat(results);
-          return unique(results);
+          return uniqueBeginning(results);
         })
       })
     );
@@ -229,7 +245,23 @@
     return Array.prototype.concat.apply([], ary);
   }
   function unique(ary) {
-    return ary.filter(function(a, i) {return ary.indexOf(a) == i});
+    return ary.filter(function(a, i) {return ary.indexOf(a) == i;});
+  }
+
+  // takes array of strings, if a string is at the beginning of 
+  // another string, then remove the longer one
+  function uniqueBeginning(ary) {
+    var t = Date.now();
+    var l = ary.length;
+    ary = ary.sort(function(a,b) {return a.length - b.length;});
+    for (var i=0; i<ary.length; i++) {
+      var small = ary[i];
+      for (var j=i+1; j<ary.length; j++) {
+        if (ary[j].indexOf(small) == 0) ary.splice(j--, 1);
+      }
+    }
+    if (Migemo.debug) console.log('uniqueByBeginning : length ' + l + ' -> ' + ary.length + '. time ' + (Date.now() - t) + 'ms.');
+    return ary;
   }
 
   // below functions are intended to be overridden by the locale
@@ -244,11 +276,12 @@
   function getRegExpString(query, longestMatch) {
     if (query == '') return Deferred.next(function() {return '';});
 
-    return getCompletion(query)
+    return Migemo.getCompletion(query)
       .next(function(lists) {
         var regexpSegments = lists.map(function(completions) {
-          return getRegExpStringFromWords(completions, longestMatch);
+          return Migemo.getRegExpStringFromWords(completions, longestMatch);
         });
+
         // query : "shougi" => return : "将棋|商議|娼妓|床几|象棋|省議|shougi|ｓｈｏｕｇｉ|しょうぎ|ショウギ|ｼｮｳｷﾞ"
         if (regexpSegments.length == 1) return regexpSegments[0];
         // query : "shougi kaisetu" => return : "(?:将棋|商議|娼妓|床几|象棋|省議|shougi|ｓｈｏｕｇｉ|しょうぎ|ショウギ|ｼｮｳｷﾞ)s*(?:回(?:折|折格子)|解説|開設|kaisetu|ｋａｉｓｅｔｕ|かいせつ|カイセツ|ｶｲｾﾂ)"
@@ -261,12 +294,13 @@
     if (!words.length) return '';
     if (words.length == 1) return regexpEscape(words[0]);
 
-    var singleChars = [];
-    var longerChars = {};
+    // ex. words : ['a', 'ab', 'abc', 'abcd', 'ac', 'bc', 'cc']
+    var singleChars = []; // ['a']
+    var longerChars = {}; // {'a': ['b', 'bc', 'bcd', 'c'], 'b': ['c'], 'c': ['c']}
     words.forEach(function(word) {
       if (!word.length) return;
       if (word.length == 1) return singleChars.push(word);
-      var head = word[0];
+      var head = word[0]; // charAt(0)
       var tail = word.slice(1);
       if (longerChars[head]) {
         longerChars[head].push(tail);
@@ -275,7 +309,7 @@
       }
     });
 
-    var regexpLonger = [];
+    var regexpLonger = []; // ['a(RESULT_OF_RECURSION)', 'bc', 'cc']
     for (var x in longerChars) {
       var tails = longerChars[x];
       if (tails.length === 1) {
@@ -283,7 +317,7 @@
       } else { // tails.length > 1
         regexpLonger.push(
           regexpEscape(x) +   // recursion here! 
-            '(?:' + getRegExpStringFromWords(tails, longestMatch) + ')'
+            '(?:' + Migemo.getRegExpStringFromWords(tails, longestMatch) + ')'
         );
       }
     }

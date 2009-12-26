@@ -52,7 +52,7 @@ function init() {
   } else {
     config.dictionaryPaths = ['http://atsushi-takayama.com/migemo/migemo-dict-ja'];
   }
-  Migemo.debug = true;
+  //Migemo.debug = true;
   ready = false;
 
   return Migemo

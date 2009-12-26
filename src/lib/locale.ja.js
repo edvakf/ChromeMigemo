@@ -1,4 +1,8 @@
 // japanese locale for JSDeferred-Migemo
+// License : The MIT License <http://www.opensource.org/licenses/mit-license.php>
+//   Copyright (c) 2009 Atsushi TAKAYAMA (taka.atsushi (a) gmail.com)
+// Depends on :
+//   jsdeferred-migemo <http://github.com/edvakf/JSDeferred-Migemo>
 
 (function() {
   if (!window.Deferred || !window.Deferred.Migemo) return;
@@ -6,7 +10,7 @@
   var getRegExpStringFromWords = Deferred.Migemo.getRegExpStringFromWords;
 
   Deferred.Migemo.createConfigJa = function(romanToHiraganaTable, dictionaryPaths) {
-    if (!dictionaryPaths) dictionaryPaths = ['dict/migemo-dict-ja', 'dict/migemo-dict-ja-roman'];
+    if (!dictionaryPaths) dictionaryPaths = ['dict/migemo-dict-ja', 'dict/migemo-dict-ja-alphabet'];
     if (!romanToHiraganaTable) romanToHiraganaTable = ROMAN_TO_HIRAGANA_TABLE;
     romanToHiraganaTable['xtu'] = 'っ'; // not configurable
 
@@ -38,8 +42,9 @@
           var segments = normalized.split(re_all).filter(function(s) {return s!=''});
           var s;
           while (s = segments.shift()) {
-              // if the last letter is 'n' don't decide it's 'ん', but leave possibility for 'な', 'にゃ', etc
-            if (s === 'n' && tails[s+segments.join('')]) break;
+            // ex. when the last letter is 'n' don't decide it's 'ん', but leave possibility for 'な', 'にゃ', etc
+            if (tails[s+segments.join('')]) break;
+            // else
             if (romanToHiraganaTable[s]) hiragana += romanToHiraganaTable[s];
             else break;
           }

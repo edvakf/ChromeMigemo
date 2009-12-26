@@ -17,9 +17,11 @@ Atsushi TAKAYAMA (@edvakf on twitter)
 == Lisence
 
 The MIT Linsence
+
 Copyright (c) 2009 Atsushi TAKAYAMA
 
 == Special Thanks
 
 I'd like to thank blogperfume.com for the cute free icons.
+
 <http://www.blogperfume.com/free-glossy-blogging-icons-set-for-bloggers/>

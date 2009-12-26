@@ -16,14 +16,10 @@ Atsushi TAKAYAMA (@edvakf on twitter)
 
 == Lisence
 
-The GNU GPL version 2 (see the file COPYING)
+The MIT Linsence
+Copyright (c) 2009 Atsushi TAKAYAMA
 
 == Special Thanks
 
-I'd like to thank;
-
-The SKK project for the dictionary.
-<http://openlab.jp/skk/wiki/wiki.cgi?page=SKK%BC%AD%BD%F1>
-
-blogperfume.com for the cute free icons.
+I'd like to thank blogperfume.com for the cute free icons.
 <http://www.blogperfume.com/free-glossy-blogging-icons-set-for-bloggers/>

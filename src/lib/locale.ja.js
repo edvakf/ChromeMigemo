@@ -31,14 +31,15 @@
     // returns 2D array (each segment of query & each candidate)
     function expandQuery(queries) { // queries : 'TaBeruna kiken'
       return queries
-        .replace(/^[\A-Z]/,function(s) {return s.toLowerCase();}) // 'taBeruna kiken'
-        .replace(/[\A-Z]/,function(s) {return ' '+s.toLowerCase();}) // 'ta beruna kiken'
-        .split(/\s+/).map(function(query) { // ['ta', 'beruna', 'kiken']
+        .split(/\s+|(?=[A-Z])/).map(function(query) {
+          query = query.toLowerCase(); // ['ta', 'beruna', 'kiken']
           var hiragana = '';
           var normalized = normalizeDoubleConsonants(query);
           var segments = normalized.split(re_all).filter(function(s) {return s!=''});
           var s;
           while (s = segments.shift()) {
+              // if the last letter is 'n' don't decide it's 'ん', but leave possibility for 'な', 'にゃ', etc
+            if (s === 'n' && tails[s+segments.join('')]) break;
             if (romanToHiraganaTable[s]) hiragana += romanToHiraganaTable[s];
             else break;
           }
@@ -66,7 +67,7 @@
 
     var config = {
       locale : 'ja',
-      version : '0.4.0', // version is to be used when auto-upgrading dictionary database
+      version : '0.5.0', // version is to be used when auto-upgrading dictionary database
       dictionaryPaths : dictionaryPaths,
       expandQuery : expandQuery,
       expandResult : expandResult
@@ -107,8 +108,7 @@
     "xa":"ぁ", "xi":"ぃ", "xu":"ぅ", "xe":"ぇ", "xo":"ぉ", 
     "xya":"ゃ", "xyu":"ゅ", "xyo":"ょ",
     "pa":"ぱ", "pi":"ぴ", "pu":"ぷ", "pe":"ぺ", "po":"ぽ",
-    "va":"ゔぁ", "vi":"ゔぃ", "vu":"ゔ", "ve":"ゔぇ", "vo":"ゔぉ", 
-    "wo":"を"
+    "va":"ゔぁ", "vi":"ゔぃ", "vu":"ゔ", "ve":"ゔぇ", "vo":"ゔぉ"
   };
 
   var hankakuToZenkakuTable = {

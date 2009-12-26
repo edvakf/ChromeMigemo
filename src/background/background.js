@@ -37,7 +37,10 @@ var ROMAN_TO_HIRAGANA_TABLE = {
 
 var Migemo = Deferred.Migemo;
 var ready = false;
+
+// called after the setting has been changed
 function init() {
+  getCompletionCache = {};
   if (localStorage['romanToHiraganaTable']) {
     var romanToHiraganaTable = JSON.parse(localStorage['romanToHiraganaTable']);
   } else {
@@ -47,42 +50,54 @@ function init() {
   if (localStorage['dictionaryPaths']) {
     config.dictionaryPaths = JSON.parse(localStorage['dictionaryPaths']);
   } else {
-    config.dictionaryPaths = ['../dict/migemo-dict-ja'];
+    config.dictionaryPaths = ['http://atsushi-takayama.com/migemo/migemo-dict-ja'];
   }
   Migemo.debug = true;
   ready = false;
 
   return Migemo
   .initialize(config)
-  .next(function() {return createWildcards(romanToHiraganaTable);})
+  .next(function() {
+    var alphabets = 'abcdefghijklmnopqrstuvwxyz';
+    return Deferred.loop(26, function(i) {
+      return Migemo.getCompletion(alphabets.charAt(i));
+    });
+  })
   .next(function() {ready = true;});
 };
 
-var cache = {};
-function createWildcards(romanToHiraganaTable) {
-  var keys = [];
-  for (var x in romanToHiraganaTable) {
-    for (var i=0; i<x.length; i++) {
-      var key = x.slice(0,i+1);
-      if (keys.indexOf(key) < 0) keys.push(key);
+// called only once, replace Migemo.getCompletion to implement caching
+var getCompletionCache = {};
+var getCompletion = Migemo.getCompletion;
+Migemo.getCompletion = function(query) {
+  var queries = query.split(/\s+|(?=[A-Z])/).map(function(s) {return s.toLowerCase();});
+  var lastQuery = queries.pop();
+  var cached = getCompletionCache[lastQuery];
+  if (cached) {
+    if (queries.length === 0) {
+      return Deferred.next(function() {return [cached];});
+    } else {
+      var _query = queries.join(' ') + ' ';
+      return getCompletion(_query)
+        .next(function(res) {
+          res.push(cached);
+          return res;
+        });
     }
-  }
-  Deferred.loop(keys.length, function(i) {
-    var key = keys[i];
-    return Migemo.getCompletion(key)
-      .next(function(res) {
-        cache[key] = res;
-      })
-  })
-  .next(function() {
-    var getCompletion = Migemo.getCompletion;
-    Migemo.getCompletion = function(query) {
-      if (cache[query]) return Deferred.next(function() {return cache[query];});
+  } else {
+    if (lastQuery.length <= 2) {
+      return getCompletion(query)
+        .next(function(res) {
+          getCompletionCache[lastQuery] = res[res.length-1];
+          return res;
+        });
+    } else {
       return getCompletion(query);
-    };
-  });
-};
+    }
+  } 
+}
 
+// called when there is a connection
 chrome.extension.onRequestExternal.addListener(
   function(request, sender, sendResponse) {
     var domain = sender.tab.url.match(/^.*?:\/\/(.*)\//)[1] || 'localhost';
@@ -100,7 +115,7 @@ chrome.extension.onRequestExternal.addListener(
      if (!ready) return sendResponse({ 
        error: ['Migemo server is not ready.',
        'Creating dictionary database usually',
-       'takes about 1.5 minutes.'].join(''),
+       'takes about 1 minutes.'].join(''),
        query: query,
        action: action});
 

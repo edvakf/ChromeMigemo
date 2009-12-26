@@ -230,12 +230,12 @@
         })
           // group : ["atta","あった"] => results : [ ['attack', 'attach'], ['あった'] ]
         .next(function(results) { 
-          results = concat(results.map(uniqueBeginning)).concat(group);
+          results = concat(results.map(extractPrefix)).concat(group);
           results = results.map(expandResult);
           // what expandResult does is: 'attack' => ['attack', 'attacked', 'attacking', 'attacker'] 
           // or 'あった' => ['あった', 'アッタ']
           results = concat(results);
-          return uniqueBeginning(results);
+          return extractPrefix(results);
         })
       })
     );
@@ -244,13 +244,10 @@
   function concat(ary) {
     return Array.prototype.concat.apply([], ary);
   }
-  function unique(ary) {
-    return ary.filter(function(a, i) {return ary.indexOf(a) == i;});
-  }
 
   // takes array of strings, if a string is at the beginning of 
   // another string, then remove the longer one
-  function uniqueBeginning(ary) {
+  function extractPrefix(ary) {
     var t = Date.now();
     var l = ary.length;
     ary = ary.sort(function(a,b) {return a.length - b.length;});
@@ -260,7 +257,7 @@
         if (ary[j].indexOf(small) == 0) ary.splice(j--, 1);
       }
     }
-    if (Migemo.debug) console.log('uniqueByBeginning : length ' + l + ' -> ' + ary.length + '. time ' + (Date.now() - t) + 'ms.');
+    if (Migemo.debug) console.log('extractPrefix : length ' + l + ' -> ' + ary.length + '. time ' + (Date.now() - t) + 'ms.');
     return ary;
   }
 

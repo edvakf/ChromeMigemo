@@ -1,3 +1,5 @@
+// jsdeferred-webdatabase.js <http://github.com/hotchpotch/jsdeferred-webdatabase>
+// Author: Yuichi Tateno
 
 (function() {
     Deferred.define(this);

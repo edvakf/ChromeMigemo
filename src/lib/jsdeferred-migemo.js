@@ -1,5 +1,5 @@
 // JSDeferred-Migemo
-// Version : 0.1.0
+// Version : 0.5.0
 // License : The MIT License <http://www.opensource.org/licenses/mit-license.php>
 //   Copyright (c) 2009 Atsushi TAKAYAMA (taka.atsushi (a) gmail.com)
 // Depends on :

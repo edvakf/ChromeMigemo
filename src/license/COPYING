@@ -1,0 +1,11 @@
+Copyright (c) 2009 Atsushi TAKAYAMA
+
+This extension including the dictionary files are distributed under the
+GNU General Public License (see the file GPL).
+
+However, the original source code of part of the files are available
+under the MIT license (see the file MIT), namely;
+
+- jsdeferred.js <http://github.com/cho45/jsdeferred>
+- jsdeferred-webdatabase.js <http://github.com/hotchpotch/jsdeferred-webdatabase>
+- jsdeferred-migemo.js and it's config <http://github.com/edvakf/JSDeferred-Migemo>

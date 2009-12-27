@@ -5,11 +5,8 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png"
   },
-  "permissions": [
-    "http://atsushi-takayama.com/*"
-  ],
   "id": "99fa5f66a2004414a24fbc51b8a87e97",
   "description": "A Migemo server. It does not provide any end-user interface. It provides APIs to be used by other extensions.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "background_page": "background/background.html"
 }

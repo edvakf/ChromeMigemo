@@ -52,7 +52,7 @@
       config.forceCreateDatabase = true;
     }
 
-    Migemo.debug = true;
+    //Migemo.debug = true;
     ready = false;
 
     return Migemo

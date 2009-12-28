@@ -30,7 +30,7 @@
     if (localStorage['ROMAN_TO_HIRAGANA']) {
       var romanToHiragana = localStorage['ROMAN_TO_HIRAGANA'];
     } else {
-      var romanToHiragana = syncGet('/options/default_roman_to_hiragana');
+      var romanToHiragana = syncGet('/options/default_roman_to_hiragana.txt');
     }
     var romanToHiraganaTable = parseRomanToHiragana(romanToHiragana);
 
@@ -39,7 +39,7 @@
     if (localStorage['DICTIONARIES']) {
       var dics = JSON.parse(localStorage['DICTIONARIES']);
     } else {
-      var dics = syncGet('/options/default_dictionaries').trim().split(/\s+/);
+      var dics = syncGet('/options/default_dictionaries.txt').trim().split(/\s+/);
     }
     config.dictionaryPaths = dics.map(function(d) {return 'dict/migemo-dict-' + d});
     if (localStorage['CUSTOM_DICTIONARY']) {

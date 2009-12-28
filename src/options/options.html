@@ -80,9 +80,9 @@
         var timer = setInterval(function() {button.value = 'saving' + '...'.slice(0, ++i%4);}, 500);
         var bg = chrome.extension.getBackgroundPage();
         bg.init()
-        .next(function() {$('save').value = 'saved!!'; clearTimeout(timer);})
+        .next(function() {button.value = 'saved!!'; clearTimeout(timer);})
         .wait(1)
-        .next(function() {$('save').disabled = false; $('save').value = 'save'})
+        .next(function() {button.disabled = false; button.value = 'save'})
       };
 
       function load(default_values) {
@@ -92,13 +92,13 @@
         if (!default_values && localStorage['ROMAN_TO_HIRAGANA']) {
           $('roman-to-hiragana').value = localStorage['ROMAN_TO_HIRAGANA'];
         } else {
-          $('roman-to-hiragana').value = syncGet('/options/default_roman_to_hiragana');
+          $('roman-to-hiragana').value = syncGet('/options/default_roman_to_hiragana.txt');
         }
         forEach( document.querySelectorAll('.dictionary'), function(d) { d.checked = false; });
         if (!default_values && localStorage['DICTIONARIES']) {
           var dics = JSON.parse(localStorage['DICTIONARIES']);
         } else {
-          var dics = syncGet('/options/default_dictionaries').trim().split(/\s+/);
+          var dics = syncGet('/options/default_dictionaries.txt').trim().split(/\s+/);
         }
         dics.forEach(function(dic) { $(dic).checked = true; });
       };

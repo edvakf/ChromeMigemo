@@ -1,18 +1,18 @@
-;; Migemo dictionary
-;; Copyright (c) 2009 JSDeferred-Migemo Developer
-;;
-;; This dictionary was derived from the SKK dictionary.
-;; <http://openlab.jp/skk/skk/dic/SKK-JISYO.ML>
-;;
-;; This dictionary is free software: you can redistribute it and/or 
-;; modify it under the terms of the GNU General Public License (GNU GPL)
-;; as published by the Free Software Foundation, either version 2, or
-;; (at your option) any later version.
-;;
-;; This dictionary is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
+# Migemo dictionary
+# Copyright (c) 2009 JSDeferred-Migemo Developer
+#
+# This dictionary was derived from the SKK dictionary.
+# <http://openlab.jp/skk/skk/dic/SKK-JISYO.ML>
+#
+# This dictionary is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU General Public License (GNU GPL)
+# as published by the Free Software Foundation, either version 2, or
+# (at your option) any later version.
+#
+# This dictionary is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
 あ	合	会	逢	遭	遇	当	充	宛	悪	褪	有	在	荒	或	編	飽	開	空	明	厭	倦	挙	揚	上	和	浴	阿	唖	亜	娃
 ああ	嗚呼	噫
 あい	愛	哀	相	藍	埃	間	挨	合

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ChromeMigemo options</title>
+    <style>
+      body {
+        background-color: #f2f2f2;
+      }
+      fieldset {
+        background-color: #e8e8e8;
+      }
+      .fieldset-title {
+        font-size: 16pt;
+        font-weight: bold;
+      }
+      code {
+        border-style: inset;
+        background-color: white;
+        padding: 2px;
+      }
+      .icon {
+        height: 24pt;
+        padding: 3px;
+        border-style: outset;
+        vertical-align: bottom;
+      }
+      .warning {
+        color: red;
+        font-size: large;
+        font-weight: bold;
+      }
+      .notice {
+        font-size: x-large;
+        font-weight: bold;
+      }
+      input[type="button"] {
+        width: 150px;
+        height: 30px;
+        background-color: #ffcccc;
+        -webkit-border-radius: 25px;
+      }
+      #save {
+        height: 50px;
+        background-color: #ccffcc;
+      }
+    </style>
+    <script>
+      function $(id) {
+        return document.getElementById(id);
+      };
+
+      function syncGet(url) {
+        var xhr = new XMLHttpRequest;
+        xhr.open('GET', url, false);
+        xhr.send();
+        return xhr.responseText;
+      }
+
+      function save() {
+        var setting = {};
+        var dics = getDictionaries();
+        if (dics === null) return;
+        if (!validateCustomDictionary()) return;
+        if (!validateRomanToHiragana()) return;
+        if ($('custom-dictionary').value != localStorage['CUSTOM_DICTIONARY'] ||
+          localStorage['DICTIONARIES'] != JSON.stringify(dics)) {
+            // force create dictionary
+          localStorage['MIGEMO_LOCALE'] = '';
+        }
+
+        localStorage['DICTIONARIES'] = JSON.stringify(dics);
+        localStorage['CUSTOM_DICTIONARY'] = $('custom-dictionary').value;
+        localStorage['ROMAN_TO_HIRAGANA'] = $('roman-to-hiragana').value;
+
+        var button = $('save');
+        button.value = 'saving';
+        button.disabled = true;
+        var i = 0;
+        var timer = setInterval(function() {button.value = 'saving' + '...'.slice(0, ++i%3);}, 500);
+        var bg = chrome.extension.getBackgroundPage();
+        bg.init()
+        .next(function() {$('save').value = 'saved!!'; clearTimeout(timer);})
+        .wait(1)
+        .next(function() {$('save').disabled = false; $('save').value = 'save'})
+      };
+
+      function load(default_values) {
+        if (!default_values && localStorage['CUSTOM_DICTIONARY']) {
+          $('custom-dictionary').value = localStorage['CUSTOM_DICTIONARY'];
+        }
+        if (!default_values && localStorage['ROMAN_TO_HIRAGANA']) {
+          $('roman-to-hiragana').value = localStorage['ROMAN_TO_HIRAGANA'];
+        } else {
+          $('roman-to-hiragana').value = syncGet('/options/default_roman_to_hiragana');
+        }
+        forEach( document.querySelectorAll('.dictionary'), function(d) { d.checked = false; });
+        if (!default_values && localStorage['DICTIONARIES']) {
+          var dics = JSON.parse(localStorage['DICTIONARIES']);
+        } else {
+          var dics = syncGet('/options/default_dictionaries').trim().split(/\s+/);
+        }
+        dics.forEach(function(dic) { $(dic).checked = true; });
+      };
+
+      function forEach(likeArray, func) {
+        Array.prototype.forEach.call(likeArray, func);
+      };
+
+      function getDictionaries() {
+        var dics = [];
+        forEach(document.querySelectorAll('.dictionary'), function(dic) {
+            if (dic.checked) dics.push(dic.id);
+        });
+        if (dics.length == 0) {
+          alert('At least one dictionary needs to be enabled.');
+          return null;
+        }
+        return dics;
+      };
+
+      function validateCustomDictionary() {
+        var lines = $('custom-dictionary').value.split(/\r?\n/);
+        for (var i=0; i<lines.length; i++) {
+          var line = lines[i].trim();
+          if (line === '' || line.charAt(0) === '#') continue;
+          if (line.split(/\s+/) < 2) {
+            alert('Values missing : ' + line);
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function validateRomanToHiragana() {
+        var mapping = {};
+        var lines = $('roman-to-hiragana').value.split(/\r?\n/);
+        for (var i=0; i<lines.length; i++) {
+          var line = lines[i].trim();
+          if (line === '' || line.charAt(0) === '#') continue;
+          var map = line.split(/\s+/);
+          if (map.length !== 2) {
+            alert('Key-Value must be a pair : ' + line);
+            return false;
+          }
+          var key = map[0], value = map[1];
+          if (mapping[key]) {
+            alert(key + ' is begin assigned more than once.');
+            return false;
+          }
+          mapping[key] = value;
+        }
+        if (mapping['xtu'] !== 'っ') {
+          alert('You cannot change assignment for "xtu"');
+          return null;
+        }
+        return true;
+      };
+
+      function setTextAreaHeight() {
+        forEach( document.querySelectorAll('textarea'), function(ta) {
+          if (ta.value.split('\n').length > 15) ta.rows = 20;
+        });
+      }
+
+      window.onload = function() {
+        load();
+        setTextAreaHeight();
+      }
+    </script>
+  </head>
+  <body>
+    <h1><img src="../icons/icon48.png" alt="ChromeMigemo Icon" class="icon"/> ChromeMigemo options</h1>
+    <fieldset>
+      <legend class="fieldset-title">Dictionaries</legend>
+      <ul>
+        <li>
+          <input type="checkbox" class="dictionary" id="ja"/>
+          <label for="ja">Japanese (basic)</label>
+        </li>
+        <li>
+          <input type="checkbox" class="dictionary" id="ja-alphabet"/>
+          <label for="ja-alphabet">Japanese (alphabet to katakana)</label>
+        </li>
+      </ul>
+      <h3>Custom dictionary</h3>
+      <ol>
+        <li>Line format: <code>[hiragana or roman] [word] [word]...</code><br/>
+          (separated by at least one space character)</li>
+        <li>Lines starting with # are comments.</li>
+        <li>Empty lines are ignored.</li>
+      </ol>
+      <textarea id="custom-dictionary" rows="10" cols="80">
+#chrome クロム クローム
+#とうきょうとっきょきょかきょく 東京特許許可局
+      </textarea>
+    </fieldset>
+    <fieldset>
+      <legend class="fieldset-title">Japanese</legend>
+      <h3>Kana mapping</h3>
+      <ol>
+        <li>Line format: <code>[roman] [hiragana]</code><br/>
+          (separated by at least one space character)</li>
+        <li>Lines starting with # are comments.</li>
+        <li>Empty lines are ignored.</li>
+        <li>Do not change the mapping of "xtu".</li>
+      </ol>
+      <textarea id="roman-to-hiragana" rows="10" cols="80">
+      </textarea>
+    </fieldset>
+    <p>
+      <input type="button" onclick="save();" value="Save" id="save" class="notice">
+      <span class="notice">Save changes.</span>
+    </p>
+    <hr />
+    <p>
+      <input type="button" onclick="load();" value="Last saved" class="warning">
+      Revert to the last-saved settings. <span class="warning">It will not be saved until you click "Save".</span>
+    </p>
+    <p>
+      <input type="button" onclick="load(true);" value="Default" class="warning">
+      Revert to the default settings. <span class="warning">It will not be saved until you click "Save".</span>
+    </p>
+  </body>
+</html>

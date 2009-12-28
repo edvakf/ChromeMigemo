@@ -58,22 +58,19 @@
 
   function initialize(config) {
     if (!config) config = {};
-    var version = config.version || 'NONE';
-    var locale = config.locale || localStorage['MIGEMO_LOCALE'] || 'NONE';
-    var dictionaryPaths = config.dictionaryPaths || ['dict/migemo-dict'];
+    var forceCreateDatabase = !!config.forceCreateDatabase;
+    var dictionaryPaths = config.dictionaryPaths || ['migemo-dict'];
+    if (config.customDictionary) customDictionary = config.customDictionary;
     if (config.expandQuery) expandQuery = config.expandQuery;
     if (config.expandResult) expandResult = config.expandResult;
 
     // if database is already created
-    if ( localStorage['MIGEMO_LOCALE'] === locale && localStorage['MIGEMO_DICT_VERSION'] === version) {
+    if (!forceCreateDatabase) {
       return Deferred.wait(0);
     } else {
       return openDictionaryFiles( dictionaryPaths )
         .next(function(text) {
           return createDatabase(text);
-        }).next(function() {
-          localStorage['MIGEMO_LOCALE'] = locale;
-          localStorage['MIGEMO_DICT_VERSION'] = version;
         });
     }
   };
@@ -109,7 +106,7 @@
         return Deferred.loop(Math.ceil(lines.length/1000), function() {
           return Dictionary._db.transaction(function() {
             while (line = lines[i++]) {
-              if (/^;;/.test(line) || /^\s*$/.test(line)) continue;
+              if (/^#/.test(line) || /^\s*$/.test(line)) continue;
               var s = line.split(/\s+/);
               var word = s.shift();
               var first = word.charAt(0);
@@ -130,12 +127,14 @@
   };
 
   // load dictionary file
+  var customDictionary = ''; // may be overridden by the config
   function openDictionaryFiles(paths) {
     console.log(paths);
     return Deferred.parallel(
       paths.map(function(path) {return openDictionaryFile(path);})
     )
     .next(function(texts) {
+      texts.push(customDictionary);
       return texts.join('\n');
     })
   };

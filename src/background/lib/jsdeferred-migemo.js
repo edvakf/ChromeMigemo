@@ -282,7 +282,7 @@
         if (regexpSegments.length == 1) return regexpSegments[0];
         // query : "shougi kaisetu" => return : "(?:将棋|商議|娼妓|床几|象棋|省議|shougi|ｓｈｏｕｇｉ|しょうぎ|ショウギ|ｼｮｳｷﾞ)s*(?:回(?:折|折格子)|解説|開設|kaisetu|ｋａｉｓｅｔｕ|かいせつ|カイセツ|ｶｲｾﾂ)"
         // query : "shougi " => return : "(?:将棋|商議|娼妓|床几|象棋|省議|shougi|ｓｈｏｕｇｉ|しょうぎ|ショウギ|ｼｮｳｷﾞ)\s*"  // tailing space means exact match
-        return regexpSegments.map(function(r) {return r ? '(?:'+r+')' : ''}).join('\s*'); 
+        return regexpSegments.map(function(r) {return r ? '(?:'+r+')' : ''}).join('\\s*'); 
       });
   };
 

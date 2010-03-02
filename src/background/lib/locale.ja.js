@@ -71,7 +71,7 @@
 
     var config = {
       locale : 'ja',
-      version : '0.6.0', // version is to be used when auto-upgrading dictionary database
+      version : '0.7.0', // version is to be used when auto-upgrading dictionary database
       dictionaryPaths : ['dict/migemo-dict-ja'],
       expandQuery : expandQuery,
       expandResult : expandResult

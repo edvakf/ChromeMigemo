@@ -87,14 +87,9 @@
     fields : {
       id         : 'INTEGER PRIMARY KEY',
       word       : 'TEXT COLLATE NOCASE',
-      first      : 'TEXT(1) NOT NULL COLLATE NOCASE', // first letter of word
       completion : 'TEXT NOT NULL'
     }
   }, db);
-
-  function sqlLikeEscape(s){
-    return (s+'').replace(/&/g,'&#38;').replace(/%/g,'&#37;').replace(/_/g,'&#95;');
-  };
 
   function createDatabase(text) {
     return Dictionary.dropTable()
@@ -109,10 +104,9 @@
               if (/^#/.test(line) || /^\s*$/.test(line)) continue;
               var s = line.split(/\s+/);
               var word = s.shift();
-              var first = word.charAt(0);
               var completions = s;
               completions.forEach(function(completion) {
-                new Dictionary({word: sqlLikeEscape(word), first: first, completion: completion}).save();
+                new Dictionary({word: word, completion: completion}).save();
               });
               if (i % 1000 == 0) {
                 if (Migemo.debug) console.log(i + ' items stored. Time : ' + Math.floor((Date.now()-t)/100)/10 + ' s');
@@ -122,8 +116,8 @@
           });
         });
       })
-      ._(Dictionary).execute(['DROP INDEX IF EXISTS first_i;'])
-      ._(Dictionary).execute(['CREATE INDEX first_i ON dictionary (first);'])
+      ._(Dictionary).execute(['DROP INDEX IF EXISTS word_i;'])
+      ._(Dictionary).execute(['CREATE INDEX word_i ON dictionary (word);'])
   };
 
   // load dictionary file
@@ -149,93 +143,83 @@
     return d;
   };
 
-  var findAmbiguousCache = {};
-  function findAmbiguous(word) {
-    // if cache exists
-    var cached = findAmbiguousCache[word];
-    if (cached) {
-      if (Migemo.debug) console.log('Ambiguous cache found for ' + word);
-      return Deferred.next(function() {return cached;});
-    }
-    // else 
-    var first = word.charAt(0);
+  function lookupAmbiguous(words) {
     var t = Date.now();
-    return Dictionary
-      .find({
-        fields: ['completion'], 
-        where: ['first = ? AND word LIKE ?', [first, sqlLikeEscape(word) + '%'] ]
-      })
-      .next(function(results) {
-        results = results.map(function(result) {return result.completion;});
-        findAmbiguousCache[word] = results;
-        setTimeout(function() { findAmbiguousCache[word] = null; },60*1000); // auto-delete cache after 1 min.
-        if (Migemo.debug) console.log('Ambiguous search for ' + word + ' took ' + (Date.now() - t) + ' ms, found ' + results.length + ' results.');
-        return results;
-      });
-  };
+    var where = '';
+    var bind = [];
+    var nextWord;
+    words.sort().forEach(function(word, i) {
+      var nextWord2 = word.slice(0,-1) + String.fromCharCode(word.charCodeAt(word.length - 1) + 1);
+      if (i === 0) {
+        where += '(word >= ? AND word < ?)';
+        bind.push(word, nextWord2);
+      } else if (word > nextWord) {
+        where += ' OR (word >= ? AND word < ?)';
+        bind.push(word, nextWord2);
+      } else if (word === nextWord) {
+        bind.pop();
+        bind.push(nextWord2);
+      } else {
+        // word < nextWord (don't care)
+      }
+      nextWord = nextWord2;
+    });
+    console.log([where,bind])
 
-  var findExactCache = {};
-  function findExact(word) {
-    // if cache exists
-    var cached = findExactCache[word];
-    if (cached) {
-      if (Migemo.debug) console.log('Exact cache found for ' + word);
-      return Deferred.next(function() {return cached;});
-    }
-    // else 
+    return Dictionary
+    .find({
+      fields: ['completion'],
+      where: [where, bind]
+    })
+    .next(function(results) {
+      if (Migemo.debug) console.log('Ambiguous search for ' + words + ' took ' + (Date.now() - t) + ' ms, found ' + results.length + ' results.');
+      return results.map(function(res) {return res.completion});
+    })
+  }
+
+  function lookupExact(words) {
     var t = Date.now();
-    return Dictionary
-      .find({
-        fields: ['completion'], 
-        where: ['word = ?', [sqlLikeEscape(word)] ]
-      })
-      .next(function(results) {
-        results = results.map(function(result) {return result.completion;});
-        findExactCache[word] = results;
-        setTimeout(function() { findExactCache[word] = null; },60*1000); // auto-delete cache after 1 min.
-        if (Migemo.debug) console.log('Ambiguous search for ' + word + ' took ' + (Date.now() - t) + ' ms, found ' + results.length + ' results.');
-        return results;
-      });
-  };
+    var where = '';
+    var bind = [];
+    words.forEach(function(word, i) {
+      if (i !== 0) where += ' OR ';
+      where += 'word = ?';
+      bind.push(word);
+    });
 
+    return Dictionary
+    .find({
+      fields: ['completion'],
+      where: [where, bind]
+    })
+    .next(function(results) {
+      if (Migemo.debug) console.log('Exact search for ' + words + ' took ' + (Date.now() - t) + ' ms, found ' + results.length + ' results.');
+      return results.map(function(res) {return res.completion});
+    })
+  }
   /*
    * Migemo.getCompletion(query) => pass completion list to next Deferred as 2D array of strings
    *   (completion list for each segment)
    */
   function getCompletion(query) {
-    var t = Date.now();
-    if (query == '') return Deferred.next(function() {return [];});
+    if (query === '') return Deferred.next(function() {return [];});
 
     // expanding query means something like
-    // query : 'ata asa' => expanded : [["ata","あた"], ["atta","あった"]]
+    // query : 'ata atta' => expanded : [["ata","あた"], ["atta","あった"]]
     var expanded = expandQuery(query);
     var last = expanded[expanded.length-1];
     
     return Deferred.parallel(
       expanded.map(function(group) {
-        var lookups = group.map(function(word) {
-          // don't search database if word length is zero
-          if (word.length === 0) return Deferred.next(function() {return [];})
-          // if the query is the last word or the word is less only one letter
-          else if (group !== last) return findExact(word);  // need exact find when word.length === 1 ?
-          // else
-          return findAmbiguous(word);
-        })
-
-        return Deferred.parallel( lookups )
-        .next(function(res) {
-          if (Migemo.debug) console.log(group+' : '+ (Date.now() - t) +' ms.');
-          return res;
-        })
+        var lookup = (group !== last) ? lookupExact(group) : lookupAmbiguous(group);
+        return lookup.next(function(results) {
           // group : ["atta","あった"] => results : [ ['attack', 'attach'], ['あった'] ]
-        .next(function(results) { 
-          results = concat(results.map(extractPrefix)).concat(group);
-          results = results.map(expandResult);
-          // what expandResult does is: 'attack' => ['attack', 'attacked', 'attacking', 'attacker'] 
+          results = extractPrefix(results).concat(group);
+          // what expandResult does is: 'attack' => ['attack', 'attacked', 'attacking', 'attacker']
           // or 'あった' => ['あった', 'アッタ']
-          results = concat(results);
+          results = concat(results.map(expandResult));
           return extractPrefix(results);
-        })
+        });
       })
     );
   };
@@ -249,19 +233,39 @@
   function extractPrefix(ary) {
     var t = Date.now();
     var l = ary.length;
-    ary = ary.sort(function(a,b) {return a.length - b.length;});
-    for (var i=0; i<ary.length; i++) {
-      var small = ary[i];
-      for (var j=i+1; j<ary.length; j++) {
-        if (ary[j].indexOf(small) == 0) ary.splice(j--, 1);
+    var prefixes = [];
+    var prefix_ary = {};
+    for (var i = 0; i < l; i++) {
+      var word = ary[i];
+      var prefix = word[0];
+      var a = prefix_ary[prefix];
+      if (a) {
+        var wl = word.length;
+        var inserted = false;
+        for (var j = 0; j < a.length; j++) {
+          if (a[j].length <= wl) {
+            if (word.indexOf(a[j]) === 0) break;
+          } else if (inserted) {
+            if (a[j].indexOf(word) === 0) a.splice(j, 1);
+          } else { // not inserted yet
+            a.splice(j - 1, 0, word);
+            inserted = true;
+            j++;
+          }
+        }
+        if (!inserted) a.push[word];
+      } else {
+        prefix_ary[prefix] = [word];
+        prefixes.push(prefix);
       }
     }
+    ary = concat(prefixes.map(function(p) {return prefix_ary[p];}));
     if (Migemo.debug) console.log('extractPrefix : length ' + l + ' -> ' + ary.length + '. time ' + (Date.now() - t) + 'ms.');
     return ary;
   }
 
   // below functions are intended to be overridden by the locale
-  function expandQuery(query) {return [query];};
+  function expandQuery(query) {return [[query]];};
   function expandResult(result) {return [result];};
 
   /*

@@ -41,7 +41,7 @@
     } else {
       var dics = syncGet('/options/default_dictionaries.txt').trim().split(/\s+/);
     }
-    config.dictionaryPaths = dics.map(function(d) {return 'dict/migemo-dict-' + d});
+    config.dictionaryPaths = dics.map(function(d) {return '/background/dict/migemo-dict-' + d});
     if (localStorage['CUSTOM_DICTIONARY']) {
       config.customDictionary = localStorage['CUSTOM_DICTIONARY'];
     }
@@ -99,7 +99,7 @@
   }
 
   // called when there is a connection
-  chrome.extension.onRequestExternal.addListener(
+  chrome.extension.onMessageExternal.addListener(
     function(request, sender, sendResponse) {
       var domain = sender.tab.url.match(/^.*?:\/\/(.*)\//)[1] || 'localhost';
       console.log("Request : " + request + 
@@ -140,6 +140,8 @@
            query: query
          });
        })
+
+       return true;
     }
   );
 

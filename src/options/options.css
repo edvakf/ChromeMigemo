@@ -1,0 +1,42 @@
+body {
+  background-color: #f2f2dd;
+}
+fieldset {
+  background-color: #eee8aa;
+  border-radius: 16px;
+}
+.fieldset-title {
+  font-size: 16pt;
+  font-weight: bold;
+}
+code {
+  border-style: inset;
+  background-color: white;
+  padding: 2px;
+}
+.icon {
+  height: 24pt;
+  padding: 3px;
+  border-style: outset;
+  vertical-align: bottom;
+}
+.warning {
+  color: red;
+  font-size: large;
+  font-weight: bold;
+}
+.notice {
+  font-size: x-large;
+  font-weight: bold;
+}
+input[type="button"] {
+  width: 150px;
+  height: 30px;
+  background-color: #ffcccc;
+  border-radius: 25px;
+}
+#save {
+  height: 50px;
+  background-color: #ccffcc;
+}
+

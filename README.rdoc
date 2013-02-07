@@ -1,3 +1,11 @@
+= ChromeMigemo is not longer maintained
+
+Since sendRequest and onRequest APIs are deprecated, ChromeMigemo and other extensions that talks to this are deprecated.
+
+Please take a look at a fork of this extension: [Migemo Server for Google Chrome™](https://chrome.google.com/webstore/detail/migemo-server-for-google/dfccgbheolnlopfmahkcjiefggclmadb/)
+
+= Old README below
+
 = ChromeMigemo Extension
 
 Migemo is an ambiguous search query generator. 
